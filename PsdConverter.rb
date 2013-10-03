@@ -5,11 +5,47 @@ require 'rmagick'
 include Magick
 
 module PsdConverter
-  class Converter
+  class Tags
+    attr_accessor :file, :view, :svg_tag
+
+    def initialize(svg_file)
+      @file = svg_file
+      @view = {}
+    end
+
+    def create_json_for_tags
+    end
+
+    def set_view
+      # Extract svg view box data
+      set_svg_tag 
+      view[:width] = self.svg_tag.scan(/width='(\d+)/).flatten![0].to_i
+      view[:height] = self.svg_tag.scan(/height='(\d+)/).flatten![0].to_i
+      
+      view[:translate] = {}
+      view[:translate]["x"] = self.svg_tag.scan(/translate\((\d+)/).flatten![0].to_i
+      view[:translate]["y"] = self.svg_tag.scan(/(translate\(\d.\d+,)(.*)/).flatten![1].scan(/\d+.\d+/)[0].to_i
+
+
+      view[:scale] = {}
+      view[:scale]["x"] = self.svg_tag.scan(/(scale\()(.*)(\,)/).flatten![1].to_i
+      view[:scale]["y"] = self.svg_tag.scan(/(scale\(\d+.\d+,)(.*)(\))/).flatten![1].to_i
+    end
+
+    def set_svg_tag
+      contents = File.read(file)
+      svg = contents.scan(/(<svg version=)(.*)(">)/).flatten!.join.gsub("\"", "'")
+      self.svg_tag = svg
+    end
+
+
+  end
+
+  class Image
     attr_accessor :file
 
-    def initialize(file)
-      @file = file
+    def initialize(psd_file)
+      @file = psd_file
     end
 
     def create_jpg_and_svg
@@ -51,7 +87,7 @@ module PsdConverter
     end
 
 
-    # ---------- #
+    # -----Don't really need some of these anymore...----- #
     class << self
       def create_all
         self.create_all_jpgs
@@ -129,18 +165,14 @@ module PsdConverter
         file["files"]["count"]
       end
     end
-    
-
-    
   end
 end
 
-# PsdConverter::Converter.create_all
-files = Dir["*"].select{|x| x =~ /.psd/}
-files.each do |file|
-  psd = PsdConverter::Converter.new(file)
-  psd.create_jpg_and_svg
-end
+# files = Dir["*"].select{|x| x =~ /.psd/}
+# files.each do |file|
+#   psd = PsdConverter::Image.new(file)
+#   psd.create_jpg_and_svg
+# end
 
 
 
