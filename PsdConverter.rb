@@ -35,7 +35,7 @@ module PsdConverter
 
     def create_json_tags(path)
       ctx = V8::Context.new
-      tags = File.read("extractjsons.js")
+      tags = File.read("lib/extractjsons.js")
       ctx['rubySvg'] = File.read("#{path}/items.svg")
       File.open("#{path}/tags.json", 'w') { |f| f.write(ctx.eval(tags))}
     end
