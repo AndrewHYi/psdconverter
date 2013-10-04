@@ -13,21 +13,29 @@ module PsdConverter
       @file = psd_file
     end
 
+    def self.convert_all_psds
+      files = Dir["*"].select{|x| x =~ /.psd/}
+      files.each do |file|
+        psd = PsdConverter::Image.new(file)
+        psd.create_jpg_svg_json
+      end
+    end
+
     def create_jpg_svg_json
-      path = self.class.get_file_count
+      path = get_file_count
       %x[mkdir -p #{path}]
 
       to_jpg(path)
       to_svg(path)
       create_json_tags(path)
 
-      self.class.destroy_temp_folders
-      self.class.increase_file_count
+      destroy_temp_folders
+      increase_file_count
     end
 
     def create_json_tags(path)
       ctx = V8::Context.new
-      tags = File.read("example.js")
+      tags = File.read("extractjsons.js")
       ctx['rubySvg'] = File.read("#{path}/items.svg")
       File.open("#{path}/tags.json", 'w') { |f| f.write(ctx.eval(tags))}
     end
@@ -56,14 +64,31 @@ module PsdConverter
       end
 
       File.open("#{path}/items.svg", "a") { |file| file.write(header + "\n\n"+ body + footer) }
+
+    end
+
+    private
+    def destroy_temp_folders
+      directories = Dir["*"].select{|x| x =~(/psd-svg/)}
+      directories.each do |directory|
+        %x[rm -rf #{directory}]
+      end
+    end
+
+    def increase_file_count
+      file = YAML::load_file('files.yaml')
+      file["files"]["count"] += 1
+      File.write('files.yaml', file.to_yaml)
+    end
+
+    def get_file_count
+      file = YAML::load_file('files.yaml')
+      file["files"]["count"]
     end
   end
 end
 
-files = Dir["*"].select{|x| x =~ /.psd/}
-files.each do |file|
-  psd = PsdConverter::Image.new(file)
-  psd.create_jpg_svg_json
-end
+PsdConverter::Image.convert_all_psds
+
 
 
